@@ -10,7 +10,7 @@ setup(name='django-psi',
     author_email='kevin@montylounge.com',
     url='https://github.com/montylounge/django-psi/',
     packages=find_packages(),
-    install_requires=['Django>=1.6.5','google-api-python-client'],
+    install_requires=['Django>=1.6.5','google-api-python-client==1.2'],
     classifiers=[
         'Development Status :: Alpha',
         'Environment :: Web Environment',
