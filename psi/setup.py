@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages
 
-VERSION = __import__('launchpad').__version__
+VERSION = __import__('psi').__version__
 
 setup(name='django-psi',
     version=VERSION,
