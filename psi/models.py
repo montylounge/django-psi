@@ -1,7 +1,6 @@
 from django.db import models
 from django.utils.translation import ugettext as _
-
-from datetime import datetime
+from django.utils import timezone
 
 class PageInsight(models.Model):
 	responseCode = models.IntegerField(_('Response Code'), default=0)
@@ -20,7 +19,7 @@ class PageInsight(models.Model):
 	otherResponseBytes = models.IntegerField(_('Other Response Bytes'), default=0)
 	numberJsResources = models.IntegerField(_('Number of JS Resources'), default=0)
 	numberCssResources = models.IntegerField(_('Number of CSS Resources'), default=0)
-	created_date = models.DateTimeField(_('Created Date'), default=datetime.now())
+	created_date = models.DateTimeField(_('Created Date'), default=timezone.now)
 	json = models.TextField(_('JSON Response'))
 
 	def __unicode__(self):
@@ -28,15 +27,28 @@ class PageInsight(models.Model):
 
 	def save(self, *args, **kwargs):
 		if not self.id:
-			self.created_date = datetime.now()
+			self.created_date = timezone.now()
 		super(PageInsight, self).save(*args, **kwargs)
 
 
-class RuleResults(models.Model):
+class RuleResult(models.Model):
 	title = models.CharField(_('Page Title'), max_length=255)
 	impact = models.FloatField(_('Impact'))
 	description = models.TextField(_('Description'), blank=True, null=True)
 	pageInsight = models.ForeignKey(PageInsight)
 
+	class Meta:
+		verbose_name_plural = _('Rule Results')
+
 	def __unicode__(self):
 		return self.title
+
+class Screenshot(models.Model):
+	width = models.IntegerField(_('Width'))
+	height = models.IntegerField(_('Height'))
+	data  = models.TextField(_('Image data'))
+	mime_type = models.CharField(_('Mime Type'), max_length=255, blank=False, null=False)
+	pageInsight = models.ForeignKey(PageInsight)
+
+	def __unicode__(self):
+		return _('Screenshot for %s') % self.pageInsight

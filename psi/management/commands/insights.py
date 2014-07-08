@@ -2,8 +2,10 @@ from optparse import make_option
 from django.core.management import BaseCommand, CommandError
 from django.core.validators  import URLValidator
 from django.conf import settings
+from django.utils.translation import ugettext as _
 from apiclient.discovery import build
-from psi.models import PageInsight, RuleResults
+from apiclient.errors import HttpError
+from psi.models import PageInsight, RuleResult, Screenshot
 
 
 class Command(BaseCommand):
@@ -18,13 +20,27 @@ class Command(BaseCommand):
 		make_option("--rule", "-r", action="store", dest="rule",
 			help="The PageSpeed rules to run. Can be specified multiple times (for example, &rule=AvoidBadRequests&rule=MinifyJavaScript) to request multiple rules. If unspecified, all rules for the current strategy are used. Most users of the API should not need to specify this parameter."),
 		make_option("--key", "-k", action="store", dest="key",
-			help="The Google developer API key used when making the request."),
+			help="The Google developer API key used when making the request. Unless Specified defaults to use the free tier on PageSpeed Insights. Good for getting a feel for how well this tool works for you."),
+		make_option("--console", "-c", action="store_true", default=False, dest="console",
+			help="Output the results to the console."),
+		make_option("--screenshot", "-i", action="store_true", default=False, dest="screenshot",
+			help="Indicates if binary data containing a screenshot should be included."),
 		)
+
+
+	def _processScreenshot(self, data, pageInsight):
+		screenshot = Screenshot()
+		screenshot.width = data.get('width', 0)
+		screenshot.height = data.get('height', 0)
+		screenshot.mime_type = data.get('mime_type', None)
+		screenshot.data = data.get('data', None)
+		screenshot.pageInsight = pageInsight
+		screenshot.save()
 
 
 	def _processRules(self, data, pageInsight):
 		for key in data:
-			ruleResult = RuleResults()	 		
+			ruleResult = RuleResult()	 		
 			ruleResult.title = data[key]['localizedRuleName']
 			ruleResult.impact = data[key]['ruleImpact']
 			ruleResult.description = data[key]['urlBlocks'][0]['header']['format']
@@ -50,6 +66,7 @@ class Command(BaseCommand):
 		pageInsight.otherResponseBytes = int(data['pageStats'].get("otherResponseBytes",0))
 		pageInsight.numberJsResources = int(data['pageStats'].get("numberJsResources",0))
 		pageInsight.numberCssResources = int(data['pageStats'].get("numberCssResources",0))
+		pageInsight.screenshot = data.get('screenshot', None)
 		pageInsight.strategy = self.strategy
 		pageInsight.save()
 		return pageInsight
@@ -76,6 +93,26 @@ class Command(BaseCommand):
 	def _process_results(self, data):
 		pageInsight = self._processPageInsight(data)
 		self._processRules(data['formattedResults']['ruleResults'],pageInsight)
+		if self.screenshot:
+			self._processScreenshot(data['screenshot'], pageInsight)
+		if self.console:
+			self._console_report(pageInsight)
+
+
+	def _console_report(self, pageInsight):
+		print "\n" + _("PageSpeed Insights")
+		print "--------------------------------------------\n"
+		print "URL: \t\t\t%s" % pageInsight.url
+		print "Strategy: \t\t%s" % pageInsight.strategy
+		print "Score: \t\t\t%s\n" % pageInsight.score
+		print "--------------------------------------------"
+		for field in pageInsight._meta.get_all_field_names():
+			if field not in ('json','ruleresult','screenshot', 'score', 'url', 'strategy', 'id', 'title', 'created_date'):
+				print "%s\t\t\t%s" % (field, pageInsight._meta.get_field(field).value_from_object(pageInsight))
+		print "--------------------------------------------\n"
+		for result in pageInsight.ruleresult_set.all():
+			print "%s\t\t\t%s" % (result.title, result.impact)
+		print "\n"
 
 
 	def handle(self, *args, **options):
@@ -86,13 +123,15 @@ class Command(BaseCommand):
 			if url:
 				urls.append(url)
 			else:
-				surls = getattr(settings, 'INSIGHTS_URLS', None)
+				surls = getattr(settings, 'PSI_URLS', None)
 				if surls:
 					for url in surls:
 						urls.append(url)
 				else:
-					raise BaseException("No URLs provided. Please either pass a URL as an argument or define INSIGHTS_URLS in settings file.")
+					raise BaseException("No URLs provided. Please either pass a URL as an argument or define PSI_URLS in settings file.")
 
+			self.console = options.get('console')
+			self.screenshot = options.get('screenshot')
 			self.strategy = options.get('strategy')
 			locale = options.get('locale')
 			rule = options.get('rule')
@@ -107,9 +146,10 @@ class Command(BaseCommand):
 					URLValidator(url)
 				except ValidationError, e:
 					raise e
-				results  = service.pagespeedapi().runpagespeed(url=url, strategy=self.strategy, locale=locale, rule=rule).execute()
+				results = service.pagespeedapi().runpagespeed(url=url, strategy=self.strategy, locale=locale, rule=rule, screenshot=self.screenshot).execute()
 				self._process_results(results)
-
+		except HttpError, e:
+			raise e
 		except Exception, e:
 			raise CommandError, e.message
 
