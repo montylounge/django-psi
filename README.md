@@ -37,19 +37,42 @@ You're all set!
 Getting started is easy. Execute the below to create entries in the database, and also produce a console report.
 
 ```python
-./manage.py insights -u http://www.djangoproject.com -c
+./manage.py insights -c -u http://www.djangoproject.com 
 ```
 
 The above informs `psi` to run PageSpeed Insights on the provided URL, and also log results to the console.
 
-Django-PSI also supports defining one or more URLs to process via the `settings.py` configuration PSI_URLS setting.
+
+## Optional Settings
+
+These project settings.py values are not required, but are available to reduce having to provide them when executing the management command. You can always override these settings.py values when executing the management command by supplying their matching arguments.
+
+### GOOGLE_API_KEY
+
+TYPE: String
+
+The [Google developer API](https://code.google.com/apis/console/) key used when making the request. Unless Specified defaults to use the free tier on PageSpeed Insights. 
+
+Example:
 
 ```python
-PSI_URLS = {
+GOOGLE_API_KEY = "SOME%GOOG*&API*KEY"
+````
+
+### PSI_URLS
+
+TYPE: tuple
+
+A collection of URLs to be iterated over during execution.
+
+Example:
+
+```python
+PSI_URLS = (
     'http://www.djangoproject.com',
-    'http://www.djangcon.us',
+    'http://www.djangocon.us',
     'http://www.djangocon.eu'
-}
+)
 ```
 
 
@@ -102,7 +125,7 @@ The [Google developer API](https://code.google.com/apis/console/) key used when 
 Type: Boolean
 Default: False
 
-Output the results to the console.
+Output the PageSpeed Insight results to the console.
 
 
 ### screenshot
@@ -110,7 +133,7 @@ Output the results to the console.
 Type: Boolean
 Default: False
 
-Indicates if binary data containing a screenshot should be included.
+Indicates if binary data containing a screenshot should be included. If True the resulting image data is stored in the database.
 
 
 ## Roadmap/Ideas
