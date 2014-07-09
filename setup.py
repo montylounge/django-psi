@@ -12,7 +12,7 @@ setup(name='django-psi',
     packages=find_packages(),
     install_requires=['Django>=1.6.5','google-api-python-client==1.2'],
     classifiers=[
-        'Development Status :: Alpha',
+        'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
         'Framework :: Django',
         'Intended Audience :: Developers',
