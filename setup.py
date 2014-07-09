@@ -11,7 +11,7 @@ setup(name='django-psi',
     url='https://github.com/montylounge/django-psi/',
     packages=find_packages(),
     install_requires=['Django>=1.6.5','google-api-python-client==1.2'],
-    download_url='https://github.com/montylounge/django-psi/archive/v0.1.zip'
+    download_url='https://github.com/montylounge/django-psi/archive/v0.1.zip',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
